@@ -80,6 +80,25 @@
             font-size: 1.2rem;
         }
 
+        .clear-chat-btn {
+            background-color: transparent;
+            color: #aaa;
+            border: 1px solid #444;
+            padding: 8px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            text-align: center;
+            font-family: inherit;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .clear-chat-btn:hover {
+            border-color: #888;
+            color: #e3e3e3;
+        }
+
         /* Main Chat Area */
         .main-content {
             flex: 1;
@@ -237,7 +256,8 @@
         <div class="sidebar-header">
             <span>GHAi</span>
         </div>
-        <button class="new-chat-btn" onclick="location.reload()">New chat</button>
+        <button class="new-chat-btn" id="newChatBtn">New chat</button>
+        <button class="clear-chat-btn" id="clearChatBtn">Clear Memory</button>
         <!-- History placeholder -->
         <div style="flex:1;"></div>
         <div style="font-size: 0.8rem; color: #777; padding-top: 20px; border-top: 1px solid #333;">
@@ -274,15 +294,48 @@
         const sendBtn = document.getElementById('sendBtn');
         const typingIndicator = document.getElementById('typing');
         const welcomeMsg = document.getElementById('welcomeMsg');
+        const newChatBtn = document.getElementById('newChatBtn');
+        const clearChatBtn = document.getElementById('clearChatBtn');
 
-        // Client-side memory
+        // Client-side memory with persistence
         let chatHistory = [];
+
+        // Load history from LocalStorage
+        function loadHistory() {
+            const stored = localStorage.getItem("ghai_chat_history");
+            if (stored) {
+                try {
+                    chatHistory = JSON.parse(stored);
+                    if (chatHistory.length > 0) {
+                        welcomeMsg.style.display = 'none';
+                        chatHistory.forEach(msg => {
+                            if (msg.role === 'user') {
+                                appendUserMessage(msg.content, false); // false = don't save again
+                            } else {
+                                appendAIMessage(msg.content, false);
+                            }
+                        });
+                        scrollToBottom();
+                    }
+                } catch (e) {
+                    console.error("Failed to load history", e);
+                }
+            }
+
+            // Set a cookie to indicate visitation/session (per user request)
+            document.cookie = "ghai_visited=true; path=/; max-age=31536000";
+        }
+
+        // Save history to LocalStorage
+        function saveHistory() {
+            localStorage.setItem("ghai_chat_history", JSON.stringify(chatHistory));
+        }
 
         function scrollToBottom() {
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        function appendUserMessage(text) {
+        function appendUserMessage(text, save = true) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message user';
             msgDiv.innerHTML = `<div class="content">${escapeHtml(text)}</div>`;
@@ -290,11 +343,9 @@
             scrollToBottom();
         }
 
-        function appendAIMessage(text) {
+        function appendAIMessage(text, save = true) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message assistant';
-            // Parse simple markdown-like formatting if needed, but for now simple text
-            // Just handling newlines
             const formattedText = escapeHtml(text).replace(/\n/g, '<br>');
 
             msgDiv.innerHTML = `
@@ -320,17 +371,15 @@
             const text = userInput.value.trim();
             if (!text) return;
 
-            // Hide welcome message on first chat
             if (welcomeMsg.style.display !== 'none') {
                 welcomeMsg.style.display = 'none';
             }
 
-            // Add user message to UI and history
             appendUserMessage(text);
             chatHistory.push({ role: "user", content: text });
-            userInput.value = '';
+            saveHistory(); // Persist
 
-            // Disable input while processing
+            userInput.value = '';
             userInput.disabled = true;
             sendBtn.disabled = true;
             typingIndicator.style.display = 'block';
@@ -356,6 +405,7 @@
                     const aiText = data.message.content;
                     appendAIMessage(aiText);
                     chatHistory.push({ role: "assistant", content: aiText });
+                    saveHistory(); // Persist
                 } else {
                     appendAIMessage("Received an unexpected response format.");
                 }
@@ -378,6 +428,33 @@
                 sendMessage();
             }
         });
+
+        // New Chat (Refresh page which will load history, so we need to clear history first if we truly want NEW chat, or just start blank?)
+        // Standard "New Chat" usually means start fresh.
+        newChatBtn.addEventListener('click', () => {
+             // For now, New Chat just clears the current view? Or creates a new session?
+             // Given the single-thread nature, New Chat = Clear History usually.
+             // But let's distinguish "New Chat" vs "Clear Memory".
+             // Actually, simplest is New Chat = Reload, but if history persists, it reloads history.
+             // So I will make "New Chat" wipe the current state but keep history? No.
+             // I will make "New Chat" simply clear the screen (session) but NOT wipe persistent storage?
+             // No, "New Chat" implies a new context.
+             // I'll make "New Chat" clear everything.
+             if(confirm("Start a new chat? This will clear current history.")) {
+                 localStorage.removeItem("ghai_chat_history");
+                 location.reload();
+             }
+        });
+
+        clearChatBtn.addEventListener('click', () => {
+             if(confirm("Clear all chat memory?")) {
+                 localStorage.removeItem("ghai_chat_history");
+                 location.reload();
+             }
+        });
+
+        // Initialize
+        loadHistory();
     </script>
 </body>
 </html>
