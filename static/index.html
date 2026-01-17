@@ -3,202 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GHAi - Chatbot</title>
+    <title>GHAi - Next Gen AI</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f0f2f5;
-            display: flex;
-            justify-content: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             height: 100vh;
-        }
-        .chat-container {
-            width: 100%;
-            max-width: 600px;
-            background-color: white;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            height: 100%;
-        }
-        .header {
-            background-color: #0084ff;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: bold;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: #333;
         }
-        .header img {
-            width: 30px;
-            height: 30px;
-            margin-right: 10px;
-            border-radius: 50%;
-            background-color: white;
-        }
-        .messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .message {
-            max-width: 80%;
-            padding: 10px 15px;
-            border-radius: 18px;
-            line-height: 1.4;
-            word-wrap: break-word;
-        }
-        .message.user {
-            align-self: flex-end;
-            background-color: #0084ff;
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-        .message.assistant {
-            align-self: flex-start;
-            background-color: #e4e6eb;
-            color: black;
-            border-bottom-left-radius: 4px;
-        }
-        .input-area {
-            padding: 20px;
-            border-top: 1px solid #ddd;
-            display: flex;
-            gap: 10px;
-        }
-        input[type="text"] {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px;
             border-radius: 20px;
-            outline: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 90%;
         }
-        button {
-            padding: 10px 20px;
-            background-color: #0084ff;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
+        h1 {
+            font-size: 3rem;
+            color: #0084ff;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 15px 30px;
+            border-radius: 30px;
+            text-decoration: none;
             font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        button:disabled {
-            background-color: #ccc;
+        .btn-primary {
+            background-color: #0084ff;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 132, 255, 0.3);
         }
-        .typing {
-            font-style: italic;
-            color: #888;
-            font-size: 0.8rem;
-            margin-left: 10px;
-            display: none;
+        .btn-secondary {
+            background-color: white;
+            color: #333;
+            border: 2px solid #ddd;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
         }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="header">
-            <!-- Simple placeholder icon -->
-            <div style="width: 30px; height: 30px; background-color: #fff; border-radius: 50%; margin-right: 10px; display: flex; align-items: center; justify-content: center; color: #0084ff;">G</div>
-            GHAi
-        </div>
-        <div class="messages" id="messages">
-            <div class="message assistant">Hello! I am GHAi. How can I help you today?</div>
-        </div>
-        <div class="typing" id="typing">GHAi is thinking...</div>
-        <div class="input-area">
-            <input type="text" id="userInput" placeholder="Type a message..." autocomplete="off">
-            <button id="sendBtn">Send</button>
+    <div class="container">
+        <h1>GHAi</h1>
+        <p>Experience the future of conversation with GHAi. Fast, smart, and always available.</p>
+        <div class="buttons">
+            <a href="/chat" class="btn btn-primary">Try GHAi Now</a>
+            <a href="/dev" class="btn btn-secondary">For Developers</a>
         </div>
     </div>
-
-    <script>
-        const messagesDiv = document.getElementById('messages');
-        const userInput = document.getElementById('userInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const typingIndicator = document.getElementById('typing');
-
-        // Client-side memory
-        let chatHistory = [
-            { role: "assistant", content: "Hello! I am GHAi. How can I help you today?" }
-        ];
-
-        function scrollToBottom() {
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
-        function appendMessage(role, text) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `message ${role}`;
-            msgDiv.textContent = text;
-            messagesDiv.appendChild(msgDiv);
-            scrollToBottom();
-        }
-
-        async function sendMessage() {
-            const text = userInput.value.trim();
-            if (!text) return;
-
-            // Add user message to UI and history
-            appendMessage('user', text);
-            chatHistory.push({ role: "user", content: text });
-            userInput.value = '';
-
-            // Disable input while processing
-            userInput.disabled = true;
-            sendBtn.disabled = true;
-            typingIndicator.style.display = 'block';
-
-            try {
-                const response = await fetch('/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ messages: chatHistory })
-                });
-
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
-                const data = await response.json();
-
-                if (data.error) {
-                    appendMessage('assistant', `Error: ${data.error}`);
-                } else if (data.message && data.message.content) {
-                    const aiText = data.message.content;
-                    appendMessage('assistant', aiText);
-                    chatHistory.push({ role: "assistant", content: aiText });
-                } else {
-                    appendMessage('assistant', "Received an unexpected response format.");
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                appendMessage('assistant', "Sorry, something went wrong. Please try again.");
-            } finally {
-                userInput.disabled = false;
-                sendBtn.disabled = false;
-                typingIndicator.style.display = 'none';
-                userInput.focus();
-            }
-        }
-
-        sendBtn.addEventListener('click', sendMessage);
-
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-    </script>
 </body>
 </html>

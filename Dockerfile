@@ -12,7 +12,8 @@ COPY . /app
 
 # SmolLM modelini indir (Render build aşamasında indirilecek)
 # Ollama servisini arka planda başlatıp modeli çekiyoruz
-RUN ollama serve & sleep 5 && ollama pull smollm
+# Using smollm:135m for optimization
+RUN ollama serve & sleep 5 && ollama pull smollm:135m
 
 # Ollama servisini başlat ve aynı anda FastAPI'yi çalıştır
 CMD ollama serve & uvicorn main:app --host 0.0.0.0 --port 10000

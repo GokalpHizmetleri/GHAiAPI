@@ -1,6 +1,6 @@
 services:
 - type: web
-  name: smollm-fastapi
+  name: ghai
   env: docker
   plan: free
   autoDeploy: true

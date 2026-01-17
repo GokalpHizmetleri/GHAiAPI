@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GHAi - Developer Menu</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 { color: #333; }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        .btn-primary {
+            background-color: #0084ff;
+            color: white;
+        }
+        .btn-primary:hover { background-color: #0073e6; }
+        .hidden { display: none; }
+        #apiKeyDisplay {
+            margin-top: 20px;
+            padding: 15px;
+            background: #eee;
+            border-radius: 6px;
+            font-family: monospace;
+            word-break: break-all;
+            text-align: left;
+        }
+        .label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+            text-align: left;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+            text-align: left;
+            font-size: 0.9em;
+        }
+    </style>
+
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-app.js"></script>
+
+    <!-- If you enabled Analytics in your project, add the Firebase SDK for Analytics -->
+    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-analytics.js"></script>
+
+    <!-- Add Firebase products that you want to use -->
+    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-database.js"></script>
+</head>
+<body>
+
+    <div class="container" id="loginParams">
+        <h1>Developer Access</h1>
+        <p>Sign in to generate your API Key for GHAi.</p>
+        <button id="loginBtn" class="btn btn-primary">Sign in with Google</button>
+        <div id="authError" style="color: red; margin-top: 10px;"></div>
+    </div>
+
+    <div class="container hidden" id="dashboard">
+        <h1>Welcome Developer</h1>
+        <p>Manage your API Access.</p>
+
+        <div id="apiKeySection">
+            <button id="generateBtn" class="btn btn-primary">Generate API Key</button>
+            <div id="apiKeyDisplay" class="hidden">
+                <span class="label">Your API Key:</span>
+                <span id="keyText"></span>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; text-align: left;">
+            <h3>How to use:</h3>
+            <pre>curl -X POST https://ghai.onrender.com/api/chat \
+-H "Content-Type: application/json" \
+-H "x-api-key: YOUR_API_KEY" \
+-d '{
+  "messages": [{"role": "user", "content": "Hello"}]
+}'</pre>
+        </div>
+
+        <button id="logoutBtn" class="btn" style="background-color: #ddd; color: #333; margin-top: 20px;">Sign Out</button>
+    </div>
+
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAfSLG6ac8rIORsUPtH7JWdF3RneX9flmk",
+            authDomain: "ghai-61f95.firebaseapp.com",
+            databaseURL: "https://ghai-61f95-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "ghai-61f95",
+            storageBucket: "ghai-61f95.firebasestorage.app",
+            messagingSenderId: "570097257022",
+            appId: "1:570097257022:web:23e114dd36b440efda1f6f",
+            measurementId: "G-P8LFHHLNJ7"
+        };
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        firebase.analytics();
+
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        const loginParams = document.getElementById('loginParams');
+        const dashboard = document.getElementById('dashboard');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const generateBtn = document.getElementById('generateBtn');
+        const apiKeyDisplay = document.getElementById('apiKeyDisplay');
+        const keyText = document.getElementById('keyText');
+        const authError = document.getElementById('authError');
+
+        // Handle Auth State
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                loginParams.classList.add('hidden');
+                dashboard.classList.remove('hidden');
+                checkExistingKey(user.uid);
+            } else {
+                loginParams.classList.remove('hidden');
+                dashboard.classList.add('hidden');
+            }
+        });
+
+        // Login
+        loginBtn.addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch(error => {
+                console.error("Login failed", error);
+                authError.textContent = "Login failed: " + error.message;
+            });
+        });
+
+        // Logout
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        // Generate Key
+        generateBtn.addEventListener('click', () => {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const newKey = 'ghai-' + generateUUID();
+            db.ref('users/' + user.uid).set({
+                apiKey: newKey,
+                email: user.email,
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                showKey(newKey);
+            }).catch(error => {
+                console.error("Error saving key", error);
+                alert("Error generating key");
+            });
+        });
+
+        function checkExistingKey(uid) {
+            db.ref('users/' + uid + '/apiKey').once('value').then(snapshot => {
+                const key = snapshot.val();
+                if (key) {
+                    showKey(key);
+                } else {
+                    apiKeyDisplay.classList.add('hidden');
+                    generateBtn.classList.remove('hidden');
+                }
+            });
+        }
+
+        function showKey(key) {
+            keyText.textContent = key;
+            apiKeyDisplay.classList.remove('hidden');
+            generateBtn.classList.add('hidden');
+        }
+
+        function generateUUID() { // Simple UUID generator
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+    </script>
+</body>
+</html>
