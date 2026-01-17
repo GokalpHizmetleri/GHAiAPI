@@ -8,7 +8,7 @@ Features:
  4. Free api
  5. No account needed for talking.
 
-Try at [This Website](https://ghai.onrender.com)
+Try at [This Website](https://ghaiapi.onrender.com)
 ## **Screenshots**
 
 <img width="1280" height="720" alt="landing" src="https://github.com/user-attachments/assets/a632294f-378c-4c51-aac4-3bfc4dd016b0" />
